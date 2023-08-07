@@ -1,8 +1,10 @@
-# AWSIM
+# AWSIM-mini
 
-![](/README_img/AWSIM.png)
+![](/README_img/AWSIM-mini.png)
 
 AWSIM is the best scene simulator for [Autoware](https://github.com/autowarefoundation/autoware).
+
+WithCartoonTrackPack
 
 ## Features
 

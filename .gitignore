@@ -63,4 +63,6 @@ crashlytics-build.properties
 
 # Externals directory
 [Aa]ssets/AWSIM/Externals/*
+[Aa]ssets/CartoonTracksPack1/*
 ![Aa]ssets/AWSIM/Externals/.gitkeep
+
