@@ -6,15 +6,14 @@ using UnityEngine.Events;
 namespace AWSIM
 {
     /// <summary>
-    /// GNSS sensor.
-    /// Publish pose and poseWithCovarianceStamped in MGRS coordinate system.
+    /// ObjectSensor sensor.
     /// Need to set the MgrsReference of the Environment for the MGRS coordinate system.
     /// </summary>
-    /// TODO: To improve the reproducibility of GNSS sensors, make it possible to output rotation and covariance.
-    public class GnssSensor : MonoBehaviour
+    /// TODO: To improve the reproducibility of ObjectSensor sensors, make it possible to output rotation and covariance.
+    public class ObjectSensor : MonoBehaviour
     {
         /// <summary>
-        /// This data is output from GnssSensor at the OutputHz cycle.
+        /// This data is output from ObjectSensor at the OutputHz cycle.
         /// </summary>
         public class OutputData
         {
@@ -36,7 +35,7 @@ namespace AWSIM
         /// Sensor processing and callbacks are called in this hz.
         /// </summary>
         [Range(0, 10)]
-        public int OutputHz = 1;    // Autoware's GnssSensor basically output at 1hz.
+        public int OutputHz = 10;    // Autoware's ObjectSensor basically output at 1hz.
 
         /// <summary>
         /// Delegate used in callbacks.
