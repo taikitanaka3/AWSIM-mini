@@ -22,12 +22,12 @@ namespace AWSIM
             /// (NOTE: This is the position considering the MGRS coordinate system origin set in Environment.cs,
             /// not the Unity world coordinate system position.)
             /// </summary>
-            public Vector3 MgrsPosition;
-
-            public OutputData()
-            {
-                MgrsPosition = new Vector3();
-            }
+            public autoware_auto_perception_msgs.msg.DetectedObject[] detectedObjects;
+            // TODO add objects info struct 
+            public Vector3 Position;
+            public Quaternion Rotation;
+            public Vector3 linearVelocity;
+            public Vector3 angularVelocity;
         }
 
         /// <summary>
@@ -47,14 +47,17 @@ namespace AWSIM
         /// Called each time data is output.
         /// </summary>
         public OnOutputDataDelegate OnOutputData;
-
         float timer = 0;
         OutputData outputData = new OutputData();
         Transform m_transform;
+        GameObject[] gameObjects;
+        Rigidbody[] rbs;
 
         void Start()
         {
             m_transform = transform;
+            outputData.detectedObjects = new List<autoware_auto_perception_msgs.msg.DetectedObject>().ToArray();
+            gameObjects = GameObject.FindGameObjectsWithTag("CAR");
         }
 
         void FixedUpdate()
@@ -67,10 +70,24 @@ namespace AWSIM
                 return;
             timer = 0;
 
-            // update mgrs position.
-            var rosPosition = ROS2Utility.UnityToRosPosition(m_transform.position);
-            outputData.MgrsPosition = rosPosition + Environment.Instance.MgrsOffsetPosition;   // ros gnss sensor's pos + mgrs offset pos.
+            var objectsList = new List<autoware_auto_perception_msgs.msg.DetectedObject>();
+            // get game object NPC with "CAR" tag 
+            foreach (var gameObject in gameObjects) // maybe replace with rigidbody to get velocity easier
+            {
+                var rosPosition = ROS2Utility.UnityToRosPosition(gameObject.transform.position)+ Environment.Instance.MgrsOffsetPosition;
+                var rosRotation = ROS2Utility.UnityToRosRotation(gameObject.transform.rotation);
 
+                var obj = new autoware_auto_perception_msgs.msg.DetectedObject();
+                // obj.Existence_Probability = 1.0f;
+                obj.Classification = new List<autoware_auto_perception_msgs.msg.ObjectClassification>().ToArray();
+                obj.Kinematics = new autoware_auto_perception_msgs.msg.DetectedObjectKinematics();
+                //obj.Kinematics.Pose_With_Covariance.Pose.Position.X = 0;
+                // obj.Kinematics.initial_pose_with_covariance =
+                // obj.Kinematics.initial_pose_with_covariance =
+                obj.Shape = new autoware_auto_perception_msgs.msg.Shape();
+                objectsList.Add(obj);
+            }
+            outputData.detectedObjects = objectsList.ToArray();
             // Calls registered callbacks
             OnOutputData.Invoke(outputData);
         }
