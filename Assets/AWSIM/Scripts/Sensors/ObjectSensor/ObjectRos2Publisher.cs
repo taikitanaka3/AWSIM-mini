@@ -15,7 +15,7 @@ namespace AWSIM
         /// <summary>
         /// Topic name in pose msg.
         /// </summary>
-        public string objectTopic = "/awsim/ground_truth/perception/object_recognition/objects";
+        public string objectTopic = "/awsim/ground_truth/perception/object_recognition/detection/objects";
 
         /// <summary>
         /// Object sensor frame id.
@@ -55,24 +55,76 @@ namespace AWSIM
 
         void Publish(ObjectSensor.OutputData outputData)
         {
-            //var objectsList = new List<autoware_auto_perception_msgs.msg.DetectedObject>();
-            //foreach (var objects in outputData.detectedObjects)
-            //{
-            //    var obj = new autoware_auto_perception_msgs.msg.DetectedObject();
-            //    //obj.Existence_Probability = 1.0f;
-            //    obj.Classification = new List<autoware_auto_perception_msgs.msg.ObjectClassification>().ToArray();
-            //    obj.Kinematics = new autoware_auto_perception_msgs.msg.DetectedObjectKinematics();
-            //    // obj.Kinematics.Pose_With_Covariance =
-            //    // obj.Kinematics.initial_pose_with_covariance =
-            //    // obj.Kinematics.initial_pose_with_covariance =
-            //    obj.Shape = new autoware_auto_perception_msgs.msg.Shape();
-            //    objectsList.Add(obj);
-            //}
+            var objectsList = new List<autoware_auto_perception_msgs.msg.DetectedObject>();
+            foreach (var rb in outputData.rbs)
+            {
+                var obj = new autoware_auto_perception_msgs.msg.DetectedObject();
+                obj.Existence_probability = 1.0f;
+                var classification = new autoware_auto_perception_msgs.msg.ObjectClassification();
+                {
+                    classification.Label = autoware_auto_perception_msgs.msg.ObjectClassification.CAR;
+                    classification.Probability = 1.0f;
+                }
+                obj.Classification = new List<autoware_auto_perception_msgs.msg.ObjectClassification>{classification}.ToArray();
+                var kinematics = new autoware_auto_perception_msgs.msg.DetectedObjectKinematics();
+                // Add pose
+                {
+                    var p = ROS2Utility.UnityToRosPosition(rb.transform.position)+ Environment.Instance.MgrsOffsetPosition;
+                    kinematics.Pose_with_covariance.Pose.Position.X = p.x;
+                    kinematics.Pose_with_covariance.Pose.Position.Y = p.y;
+                    kinematics.Pose_with_covariance.Pose.Position.Z = p.z;
+                    var r = ROS2Utility.UnityToRosRotation(rb.transform.rotation);
+                    kinematics.Pose_with_covariance.Pose.Orientation.X = r.x;
+                    kinematics.Pose_with_covariance.Pose.Orientation.Y = r.y;
+                    kinematics.Pose_with_covariance.Pose.Orientation.Z = r.z;
+                }
+                // Add twist
+                {
+                    var t = ROS2Utility.UnityToRosPosition(rb.velocity);
+                    kinematics.Twist_with_covariance.Twist.Linear.X = t.x;
+                    kinematics.Twist_with_covariance.Twist.Linear.Y = t.y;
+                    kinematics.Twist_with_covariance.Twist.Linear.Z = t.z;
+                    var a = ROS2Utility.UnityToRosPosition(rb.angularVelocity);
+                    kinematics.Twist_with_covariance.Twist.Angular.X = t.x;
+                    kinematics.Twist_with_covariance.Twist.Angular.Y = t.y;
+                    kinematics.Twist_with_covariance.Twist.Angular.Z = t.z;
+                }
+                // Add covariance
+                {
+                    kinematics.Has_position_covariance = true;
+                    kinematics.Orientation_availability = autoware_auto_perception_msgs.msg.DetectedObjectKinematics.AVAILABLE;
+                    kinematics.Has_twist = true;
+                    kinematics.Has_twist_covariance = true;
+                    // Add covariance 6x6
+                    const int size = 6;
+                    for (int i = 0; i < size; i++)
+                    {
+                        kinematics.Pose_with_covariance.Covariance[i * size + i] = 1;
+                        kinematics.Twist_with_covariance.Covariance[i * size + i] = 1;
+                    }
+                }
+                obj.Kinematics = kinematics;
+
+                var shape = new autoware_auto_perception_msgs.msg.Shape();
+                {
+                    shape.Type = autoware_auto_perception_msgs.msg.Shape.BOUNDING_BOX;
+                    shape.Dimensions.X = outputData.dimensions.x;
+                    shape.Dimensions.Y = outputData.dimensions.y;
+                    shape.Dimensions.Z = outputData.dimensions.z;
+
+                    // TODO add foot print calculation
+                    //shape.Footprint = 
+                    obj.Shape = shape;
+                }
+                
+                objectsList.Add(obj);
+            }
             // Converts data output from ObjectSensor to ROS2 msg
-            objectsMsg.Objects = outputData.detectedObjects;
+            objectsMsg.Objects = objectsList.ToArray();
             // Update msg header.
             var header = objectsMsg as MessageWithHeader;
             SimulatorROS2Node.UpdateROSTimestamp(ref header);
+            objectsMsg.Header.Frame_id = frameId;
 
             // Publish to ROS2.
             objectPublisher.Publish(objectsMsg);

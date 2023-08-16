@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using System.Linq;
 
 namespace AWSIM
 {
@@ -22,12 +23,8 @@ namespace AWSIM
             /// (NOTE: This is the position considering the MGRS coordinate system origin set in Environment.cs,
             /// not the Unity world coordinate system position.)
             /// </summary>
-            public autoware_auto_perception_msgs.msg.DetectedObject[] detectedObjects;
-            // TODO add objects info struct 
-            public Vector3 Position;
-            public Quaternion Rotation;
-            public Vector3 linearVelocity;
-            public Vector3 angularVelocity;
+            public Rigidbody[] rbs;
+            public Vector3 dimensions;
         }
 
         /// <summary>
@@ -51,13 +48,17 @@ namespace AWSIM
         OutputData outputData = new OutputData();
         Transform m_transform;
         GameObject[] gameObjects;
-        Rigidbody[] rbs;
 
         void Start()
         {
             m_transform = transform;
-            outputData.detectedObjects = new List<autoware_auto_perception_msgs.msg.DetectedObject>().ToArray();
+            // TODO to adjust in a better way
+            outputData.dimensions = new Vector3(3.0f,1.5f,2.0f);
             gameObjects = GameObject.FindGameObjectsWithTag("CAR");
+            outputData.rbs = gameObjects
+                .Select(go => go.GetComponent<Rigidbody>())
+                .Where(rb => rb != null)
+                .ToArray();
         }
 
         void FixedUpdate()
@@ -70,8 +71,9 @@ namespace AWSIM
                 return;
             timer = 0;
 
-            var objectsList = new List<autoware_auto_perception_msgs.msg.DetectedObject>();
+            //var objectsList = new List<autoware_auto_perception_msgs.msg.DetectedObject>();
             // get game object NPC with "CAR" tag 
+            /*
             foreach (var gameObject in gameObjects) // maybe replace with rigidbody to get velocity easier
             {
                 var rosPosition = ROS2Utility.UnityToRosPosition(gameObject.transform.position)+ Environment.Instance.MgrsOffsetPosition;
@@ -87,7 +89,7 @@ namespace AWSIM
                 obj.Shape = new autoware_auto_perception_msgs.msg.Shape();
                 objectsList.Add(obj);
             }
-            outputData.detectedObjects = objectsList.ToArray();
+            */
             // Calls registered callbacks
             OnOutputData.Invoke(outputData);
         }
