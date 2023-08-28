@@ -16,15 +16,24 @@ namespace AWSIM
         /// <summary>
         /// This data is output from ObjectSensor at the OutputHz cycle.
         /// </summary>
+        /// 
+        public enum Classification
+        {
+            CAR,
+            TRUCK,
+            BUS,
+            Pedestrian
+        }
+        public class DetectedObject
+        {
+            public Rigidbody rigidBody;
+            public Vector3 dimension;
+            public Classification classification; 
+        }
+
         public class OutputData
         {
-            /// <summary>
-            /// Position in the MGRS coordinate system.
-            /// (NOTE: This is the position considering the MGRS coordinate system origin set in Environment.cs,
-            /// not the Unity world coordinate system position.)
-            /// </summary>
-            public Rigidbody[] rbs;
-            public Vector3 dimensions;
+            public DetectedObject[] objects;
         }
 
         /// <summary>
@@ -53,12 +62,28 @@ namespace AWSIM
         {
             m_transform = transform;
             // TODO to adjust in a better way
-            outputData.dimensions = new Vector3(3.0f,1.5f,2.0f);
             gameObjects = GameObject.FindGameObjectsWithTag("CAR");
-            outputData.rbs = gameObjects
-                .Select(go => go.GetComponent<Rigidbody>())
-                .Where(rb => rb != null)
-                .ToArray();
+            outputData = new OutputData();
+            outputData.objects = new DetectedObject[gameObjects.Length];
+            for (int i = 0; i < gameObjects.Length; i++)
+            {
+                var gameObject = gameObjects[i];
+                outputData.objects[i] = new DetectedObject();
+                outputData.objects[i].rigidBody = gameObject.GetComponent<Rigidbody>();
+                // add mesh bounds
+                Vector3 minBounds = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+                Vector3 maxBounds = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+                MeshRenderer[] renderers = gameObject.GetComponentsInChildren<MeshRenderer>();
+                foreach (MeshRenderer renderer in renderers)
+                {
+                    Bounds bounds = renderer.bounds;
+                    minBounds = Vector3.Min(minBounds, bounds.min);
+                    maxBounds = Vector3.Max(maxBounds, bounds.max);
+                }
+                const Vector3 totalSize = maxBounds - minBounds;
+                outputData.objects[i].dimension = totalSize;
+                outputData.objects[i].classification = Classification.CAR;
+            }
         }
 
         void FixedUpdate()
@@ -71,25 +96,6 @@ namespace AWSIM
                 return;
             timer = 0;
 
-            //var objectsList = new List<autoware_auto_perception_msgs.msg.DetectedObject>();
-            // get game object NPC with "CAR" tag 
-            /*
-            foreach (var gameObject in gameObjects) // maybe replace with rigidbody to get velocity easier
-            {
-                var rosPosition = ROS2Utility.UnityToRosPosition(gameObject.transform.position)+ Environment.Instance.MgrsOffsetPosition;
-                var rosRotation = ROS2Utility.UnityToRosRotation(gameObject.transform.rotation);
-
-                var obj = new autoware_auto_perception_msgs.msg.DetectedObject();
-                // obj.Existence_Probability = 1.0f;
-                obj.Classification = new List<autoware_auto_perception_msgs.msg.ObjectClassification>().ToArray();
-                obj.Kinematics = new autoware_auto_perception_msgs.msg.DetectedObjectKinematics();
-                //obj.Kinematics.Pose_With_Covariance.Pose.Position.X = 0;
-                // obj.Kinematics.initial_pose_with_covariance =
-                // obj.Kinematics.initial_pose_with_covariance =
-                obj.Shape = new autoware_auto_perception_msgs.msg.Shape();
-                objectsList.Add(obj);
-            }
-            */
             // Calls registered callbacks
             OnOutputData.Invoke(outputData);
         }

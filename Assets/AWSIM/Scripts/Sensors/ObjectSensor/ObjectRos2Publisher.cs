@@ -56,16 +56,20 @@ namespace AWSIM
         void Publish(ObjectSensor.OutputData outputData)
         {
             var objectsList = new List<autoware_auto_perception_msgs.msg.DetectedObject>();
-            foreach (var rb in outputData.rbs)
+            foreach (var detectedObject in outputData.objects)
             {
+                var rb = detectedObject.rigidBody;
+                var dim = detectedObject.dimension;
                 var obj = new autoware_auto_perception_msgs.msg.DetectedObject();
                 obj.Existence_probability = 1.0f;
+                // TODO(tanaka): add more classes
                 var classification = new autoware_auto_perception_msgs.msg.ObjectClassification();
                 {
                     classification.Label = autoware_auto_perception_msgs.msg.ObjectClassification.CAR;
                     classification.Probability = 1.0f;
                 }
                 obj.Classification = new List<autoware_auto_perception_msgs.msg.ObjectClassification>{classification}.ToArray();
+
                 var kinematics = new autoware_auto_perception_msgs.msg.DetectedObjectKinematics();
                 // Add pose
                 {
@@ -108,9 +112,9 @@ namespace AWSIM
                 var shape = new autoware_auto_perception_msgs.msg.Shape();
                 {
                     shape.Type = autoware_auto_perception_msgs.msg.Shape.BOUNDING_BOX;
-                    shape.Dimensions.X = outputData.dimensions.x;
-                    shape.Dimensions.Y = outputData.dimensions.y;
-                    shape.Dimensions.Z = outputData.dimensions.z;
+                    shape.Dimensions.X = dim.x;
+                    shape.Dimensions.Y = dim.y;
+                    shape.Dimensions.Z = dim.z;
 
                     // TODO add foot print calculation
                     //shape.Footprint = 
