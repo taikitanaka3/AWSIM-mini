@@ -80,7 +80,7 @@ namespace AWSIM
                     minBounds = Vector3.Min(minBounds, bounds.min);
                     maxBounds = Vector3.Max(maxBounds, bounds.max);
                 }
-                const Vector3 totalSize = maxBounds - minBounds;
+                Vector3 totalSize = maxBounds - minBounds;
                 outputData.objects[i].dimension = totalSize;
                 outputData.objects[i].classification = Classification.CAR;
             }
