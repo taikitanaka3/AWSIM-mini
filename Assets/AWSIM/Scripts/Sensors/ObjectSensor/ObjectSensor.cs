@@ -28,6 +28,7 @@ namespace AWSIM
         {
             public Rigidbody rigidBody;
             public Vector3 dimension;
+            public Vector2[] bounds;
             public Classification classification; 
         }
 
@@ -70,7 +71,6 @@ namespace AWSIM
                 var gameObject = gameObjects[i];
                 outputData.objects[i] = new DetectedObject();
                 outputData.objects[i].rigidBody = gameObject.GetComponent<Rigidbody>();
-                // add mesh bounds
                 Vector3 minBounds = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
                 Vector3 maxBounds = new Vector3(float.MinValue, float.MinValue, float.MinValue);
                 MeshRenderer[] renderers = gameObject.GetComponentsInChildren<MeshRenderer>();
@@ -80,8 +80,18 @@ namespace AWSIM
                     minBounds = Vector3.Min(minBounds, bounds.min);
                     maxBounds = Vector3.Max(maxBounds, bounds.max);
                 }
+                // add bounds
+                outputData.objects[i].bounds = new Vector2[4];
+                {
+                    outputData.objects[i].bounds[0] = new Vector2(minBounds.x, minBounds.z);
+                    outputData.objects[i].bounds[1] = new Vector2(minBounds.x, maxBounds.z);
+                    outputData.objects[i].bounds[2] = new Vector2(maxBounds.x, maxBounds.z);
+                    outputData.objects[i].bounds[3] = new Vector2(maxBounds.x, minBounds.z);
+                }
+                // add dimension
                 Vector3 totalSize = maxBounds - minBounds;
                 outputData.objects[i].dimension = totalSize;
+                // add classification
                 outputData.objects[i].classification = Classification.CAR;
             }
         }

@@ -60,6 +60,7 @@ namespace AWSIM
             {
                 var rb = detectedObject.rigidBody;
                 var dim = detectedObject.dimension;
+                var bou = detectedObject.bounds;
                 var obj = new autoware_auto_perception_msgs.msg.DetectedObject();
                 obj.Existence_probability = 1.0f;
                 // TODO(tanaka): add more classes
@@ -109,18 +110,23 @@ namespace AWSIM
                 }
                 obj.Kinematics = kinematics;
 
-                var shape = new autoware_auto_perception_msgs.msg.Shape();
+                // add shape and footprint
                 {
+                    var shape = new autoware_auto_perception_msgs.msg.Shape();
                     shape.Type = autoware_auto_perception_msgs.msg.Shape.BOUNDING_BOX;
                     shape.Dimensions.X = dim.x;
                     shape.Dimensions.Y = dim.y;
                     shape.Dimensions.Z = dim.z;
-
-                    // TODO add foot print calculation
-                    //shape.Footprint = 
+                    var footprints = new geometry_msgs.msg.Polygon();
+                    // Assuming Point32 has X, Y, Z properties
+                    var point1 = new geometry_msgs.msg.Point32() { X = bou[0].x, Y = bou[0].y, Z = 0 };
+                    var point2 = new geometry_msgs.msg.Point32() { X = bou[1].x, Y = bou[1].y, Z = 0 };
+                    var point3 = new geometry_msgs.msg.Point32() { X = bou[2].x, Y = bou[2].y, Z = 0 };
+                    var point4 = new geometry_msgs.msg.Point32() { X = bou[3].x, Y = bou[3].y, Z = 0 };
+                    footprints.Points = new[] { point1, point2, point3, point4 };
+                    shape.Footprint = footprints;
                     obj.Shape = shape;
                 }
-                
                 objectsList.Add(obj);
             }
             // Converts data output from ObjectSensor to ROS2 msg
