@@ -59,6 +59,37 @@ namespace AWSIM
         Transform m_transform;
         GameObject[] gameObjects;
 
+        // This method generates a footprint for the vehicle based on its dimensions, position, and rotation.
+        Vector2[] GenerateFootprint(Vector3 dimensions, Rigidbody vehicleRb)
+        {
+            Vector2[] footprint = new Vector2[4];
+
+            // Retrieve the vehicle's position and rotation
+            Vector3 position = vehicleRb.position;
+            Quaternion rotation = vehicleRb.rotation;
+
+            // Calculate half of the dimensions for easier calculation
+            float halfLength = dimensions.x * 0.5f;
+            float halfWidth = dimensions.y * 0.5f;
+
+            // Define the vehicle's corner points relative to its center
+            Vector3[] localCorners = {
+                new Vector3(-halfLength, 0, halfWidth),    // Front left
+                new Vector3(-halfLength, 0, -halfWidth),   // Rear left
+                new Vector3(halfLength, 0, -halfWidth),    // Rear right
+                new Vector3(halfLength, 0, halfWidth)      // Front right
+            };
+
+            // Rotate and translate each corner point to get the footprint
+            for (int i = 0; i < 4; i++)
+            {
+                Vector3 globalCorner = position + rotation * localCorners[i];
+                footprint[i] = new Vector2(globalCorner.x, globalCorner.z); // Using X and Z axes as Unity is left-handed and Y is up.
+            }
+
+            return footprint;
+        }
+
         void Start()
         {
             m_transform = transform;
@@ -80,17 +111,10 @@ namespace AWSIM
                     minBounds = Vector3.Min(minBounds, bounds.min);
                     maxBounds = Vector3.Max(maxBounds, bounds.max);
                 }
-                // add bounds
-                outputData.objects[i].bounds = new Vector2[4];
-                {
-                    outputData.objects[i].bounds[0] = new Vector2(minBounds.x, minBounds.z);
-                    outputData.objects[i].bounds[1] = new Vector2(minBounds.x, maxBounds.z);
-                    outputData.objects[i].bounds[2] = new Vector2(maxBounds.x, maxBounds.z);
-                    outputData.objects[i].bounds[3] = new Vector2(maxBounds.x, minBounds.z);
-                }
                 // add dimension
                 Vector3 totalSize = maxBounds - minBounds;
                 outputData.objects[i].dimension = totalSize;
+                outputData.objects[i].bounds = GenerateFootprint(totalSize,outputData.objects[i].rigidBody);
                 // add classification
                 outputData.objects[i].classification = Classification.CAR;
             }
@@ -105,6 +129,11 @@ namespace AWSIM
             if (timer < interval)
                 return;
             timer = 0;
+            for (int i = 0; i < outputData.objects.Length; i++)
+            {
+                var o = outputData.objects[i];
+                outputData.objects[i].bounds = GenerateFootprint(o.dimension,o.rigidBody);
+            }
 
             // Calls registered callbacks
             OnOutputData.Invoke(outputData);
